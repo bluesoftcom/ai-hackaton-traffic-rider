@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 from fuelBall import FuelBall
 from player import Player
 from enemy import Enemy
@@ -18,6 +19,7 @@ score = 0
 
 WINDOW_WIDTH = 700
 WINDOW_HEIGHT = 700
+FONT_COLOR = (255, 255, 255)
 # Set up the display
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Traffic Rider")
@@ -51,6 +53,7 @@ all_sprites.add(fuel)
 fuel_balls = pygame.sprite.Group()
 
 
+
 def score_function(time):
     # Calculate the score based on the time passed
     score = int(time * 10)
@@ -80,7 +83,7 @@ def spawn_fuel_ball():
     fuel_ball = FuelBall(x, -32)
     fuel_balls.add(fuel_ball)
 
-MENU_OPTIONS = ["Start Game", "Show Score", "Close Game"]
+MENU_OPTIONS = ["Start Game", "Close Game"]
 MENU_X = WINDOW_WIDTH // 2
 MENU_Y = WINDOW_HEIGHT // 2
 MENU_SPACING = 50
@@ -89,12 +92,21 @@ def draw_menu():
     for i, option in enumerate(MENU_OPTIONS):
         text = font.render(option, True, (255, 255, 255))
         text_rect = text.get_rect(center=(MENU_X, MENU_Y + i * MENU_SPACING))
-        window.blit(text, text_rect)
+        screen.blit(text, text_rect)
+
+# Function to read the record file and return the results as a string
+def read_record():
+    if os.path.exists("record.txt"):
+        with open("record.txt", "r") as f:
+            record = f.read()
+    else:
+        record = "No record found"
+    return record
 
 
 # call spawn_fuel_ball every 500 milliseconds
 pygame.time.set_timer(pygame.USEREVENT+1, 500)
-gamestate = "GU"
+gamestate = "MENU"
 
 
 while running:
@@ -110,11 +122,14 @@ while running:
                     if text_rect.collidepoint(mouse_x, mouse_y):
                         # Call the corresponding function
                         if option == "Start Game":
-                            gamestate == "GAME"
+                            print("start game")
+                            gamestate = "GAME"
                         elif option == "Close Game":
                             pygame.quit()
-
-    else:
+        screen.fill((0, 0, 0))
+        draw_menu()
+        pygame.display.flip()
+    elif gamestate == "GAME":
     # Handle events
         for event in pygame.event.get():
             if event.type == pygame.USEREVENT+1:
@@ -157,6 +172,7 @@ while running:
 
         # calculate score
         elapsed_time = (pygame.time.get_ticks() - start_time) / 1000.0
+        print('working')
         score = int(score_function(elapsed_time))
         # Update sprites
         player.update()
@@ -170,7 +186,12 @@ while running:
                             player.rect.centery - 16)
             explosion.update()
             explosion.draw(screen)
-            running = False  # Stop the game
+            gamestate = "MENU"
+            for enemy in enemies:
+                enemy.kill()
+            fuel.refill(100)    
+            enemies.empty()
+            fuel_balls.empty()
             # Save the record
             with open("record.txt", "a") as f:
                 f.write(str(score) + "\n")
@@ -180,7 +201,13 @@ while running:
                 fuel.refill(40)
 
         if fuel.is_empty:
-            running = False  # Stop the game
+            explosion.draw(screen)
+            gamestate = "MENU"
+            for enemy in enemies:
+                enemy.kill()
+            fuel.refill(100)
+            enemies.empty()
+            fuel_balls.empty()
             # Save the record
             with open("record.txt", "a") as f:
                 f.write(str(score) + "\n")
